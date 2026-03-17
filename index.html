@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>SentinelScan — Website Security Scanner</title>
+  <link rel="stylesheet" href="style.css" />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Syne:wght@700;800&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet"/>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="logo">
+    <div class="logo-shield">
+      <svg fill="none" viewBox="0 0 24 24" stroke="white" stroke-width="2.5">
+        <path stroke-linecap="round" stroke-linejoin="round"
+          d="M12 3l7 4v5c0 4.5-3 8.5-7 10C8 20.5 5 16.5 5 12V7l7-4z"/>
+      </svg>
+    </div>
+    SentinelScan
+  </div>
+  <div class="nav-pill">
+    <div class="live-dot"></div>
+    Powered by Groq AI — Free
+  </div>
+</nav>
+
+<!-- APP -->
+<div class="app">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+
+    <div class="sidebar-section">
+      <div class="sidebar-title">Add Website</div>
+      <div class="add-url-box">
+        <p class="add-url-hint">Enter any URL to scan for vulnerabilities, SSL issues, password risks, HTTP errors and more.</p>
+        <div class="url-input-wrap">
+          <input id="urlInput" class="url-input" type="url" placeholder="https://example.com" />
+          <button class="btn-add" onclick="addWebsite()">Add</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-title">Scan Options</div>
+      <div class="scan-options" id="scanOptions"></div>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-title">Auto-Scan Interval</div>
+      <div class="add-url-box">
+        <select id="scheduleSelect" class="schedule-select">
+          <option value="0">Manual only</option>
+          <option value="3600000">Every 1 hour</option>
+          <option value="21600000">Every 6 hours</option>
+          <option value="86400000">Every 24 hours</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="sidebar-section site-list-section">
+      <div class="sidebar-title">
+        Monitored Sites
+        <span class="site-count" id="siteCount">0</span>
+      </div>
+      <div id="websiteList">
+        <p class="no-sites-msg">No sites added yet.</p>
+      </div>
+    </div>
+
+    <button class="btn-scan-all" id="scanAllBtn" onclick="scanAll()" disabled>
+      <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+        <circle cx="12" cy="12" r="9"/>
+        <path stroke-linecap="round" d="M12 7v5l3 3"/>
+      </svg>
+      Scan All Sites
+    </button>
+
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main" id="mainPanel">
+
+    <div class="empty-state" id="emptyState">
+      <div class="empty-icon">🛡️</div>
+      <div class="empty-title">No site selected</div>
+      <div class="empty-sub">Add a website in the sidebar, then click <strong>Scan</strong> to analyse it for security issues, HTTP errors, password risks, SSL problems and more.</div>
+    </div>
+
+    <div class="scanning-overlay" id="scanningOverlay" style="display:none">
+      <div class="scan-radar">
+        <div class="scan-radar-ring"></div>
+        <div class="scan-radar-ring"></div>
+        <div class="scan-radar-ring"></div>
+        <div class="scan-radar-core"></div>
+      </div>
+      <div class="scan-title">Scanning in progress…</div>
+      <div class="scan-log" id="scanLog">Initialising Gemini scanner…</div>
+      <div class="scan-progress-bar">
+        <div class="scan-progress-fill" id="scanProgressFill"></div>
+      </div>
+    </div>
+
+    <div id="resultsPanel" style="display:none">
+
+      <div class="results-header">
+        <div>
+          <div class="results-site-name" id="resultsSiteName"></div>
+          <div class="results-url" id="resultsUrl"></div>
+          <div class="results-timestamp" id="resultsTimestamp"></div>
+        </div>
+        <div class="header-actions">
+          <button class="btn-rescan" onclick="rescanActive()">
+            <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v6h6M20 20v-6h-6M4.93 14A8 8 0 1019.07 10"/>
+            </svg>
+            Re-scan
+          </button>
+          <button class="btn-download" onclick="downloadPDF()">
+            <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v12m0 0l-4-4m4 4l4-4M3 17v2a2 2 0 002 2h14a2 2 0 002-2v-2"/>
+            </svg>
+            Download PDF
+          </button>
+          <div class="auto-dl-wrap">
+            <span class="auto-dl-label" id="autoDlLabel">Auto PDF: OFF</span>
+            <button class="btn-auto-toggle" id="autoToggleBtn" onclick="toggleAutoDownload()">Enable</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="score-strip">
+        <div class="score-ring-wrap">
+          <div class="score-ring">
+            <svg width="100" height="100" viewBox="0 0 100 100">
+              <circle cx="50" cy="50" r="40" fill="none" stroke="rgba(255,255,255,0.07)" stroke-width="8"/>
+              <circle cx="50" cy="50" r="40" fill="none" stroke-width="8" stroke-linecap="round"
+                id="scoreArc" stroke-dasharray="251.2" stroke-dashoffset="251.2"
+                style="transition:stroke-dashoffset 1s ease,stroke 0.5s"/>
+            </svg>
+            <div class="score-ring-num">
+              <span id="scoreNum">–</span>
+              <span class="score-ring-label">Score</span>
+            </div>
+          </div>
+        </div>
+        <div class="score-meta" id="scoreMeta"></div>
+      </div>
+
+      <div class="section-tabs">
+        <button class="tab-btn active" onclick="switchTab('all',this)">All Findings</button>
+        <button class="tab-btn" onclick="switchTab('critical',this)">Critical</button>
+        <button class="tab-btn" onclick="switchTab('security',this)">Security</button>
+        <button class="tab-btn" onclick="switchTab('errors',this)">Errors</button>
+        <button class="tab-btn" onclick="switchTab('info',this)">Info</button>
+      </div>
+
+      <div class="findings-grid" id="findingsGrid"></div>
+
+    </div>
+
+  </main>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
